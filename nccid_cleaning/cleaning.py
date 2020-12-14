@@ -92,9 +92,13 @@ def _remap_ethnicity(patients_df: pd.DataFrame) -> pd.DataFrame:
         }
     )
 
-    patients_df["ethnicity"] = (
-        patients_df["Ethnicity"].str.lower().replace(_ETHNICITY_MAPPING)
-    )
+    try:
+        patients_df["ethnicity"] = (
+            patients_df["Ethnicity"].str.lower().replace(_ETHNICITY_MAPPING)
+        )
+    except AttributeError:
+        # If the column is all empty, the .str call would break as non-string is inferred
+        pass
 
     return patients_df
 
@@ -157,18 +161,20 @@ def _coerce_numeric_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
         "Troponin I",  # sites vary between ng/L and ng/ml
         "Troponin T",  # not widely used by sites
     )
-    for col in clinical_columns:
+    for col in [col for col in clinical_columns if col in patients_df]:
         new_col = col.lower().replace(" ", "_").replace(",", "")
         patients_df[new_col] = patients_df[col].map(
             lambda x: _extract_clinical_values(str(x), kind="single")
         )
     # blood pressure columns
-    patients_df["systolic_bp"] = patients_df["Systolic BP"].map(
-        lambda x: _extract_clinical_values(str(x), kind="systolic")
-    )
-    patients_df["diastolic_bp"] = patients_df["Diastolic BP"].map(
-        lambda x: _extract_clinical_values(str(x), kind="diastolic")
-    )
+    if "Systolic BP" in patients_df:
+        patients_df["systolic_bp"] = patients_df["Systolic BP"].map(
+            lambda x: _extract_clinical_values(str(x), kind="systolic")
+        )
+    if "Diastolic BP" in patients_df:
+        patients_df["diastolic_bp"] = patients_df["Diastolic BP"].map(
+            lambda x: _extract_clinical_values(str(x), kind="diastolic")
+        )
 
     # remove values outside reasonable range where range is known
     # expected in celcius so clipped to 25- 45
@@ -176,16 +182,15 @@ def _coerce_numeric_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
         "temperature_on_admission"
     ].apply(lambda x: x if 25 <= x <= 45 else np.nan)
     # expected in g/L
-    patients_df["fibrinogen__if_d-dimer_not_performed"] = patients_df[
-        "fibrinogen__if_d-dimer_not_performed"
-    ].map(lambda x: x if 0 <= x <= 100 else np.nan)
-    # these fields are expected in the range 0-100
-    patients_df["urea_on_admission"] = patients_df["urea_on_admission"].map(
-        lambda x: x if 0 <= x <= 100 else np.nan
-    )
-    patients_df["o2_saturation"] = patients_df["o2_saturation"].map(
-        lambda x: x if 0 <= x <= 100 else np.nan
-    )
+    cols100range = [
+        "fibrinogen__if_d-dimer_not_performed",
+        "urea_on_admission",
+        "o2_saturation",
+    ]
+    for col in [col for col in cols100range if col in patients_df]:
+        patients_df[col] = patients_df[col].map(
+            lambda x: x if 0 <= x <= 100 else np.nan
+        )
     # age (round to nearest year)
     patients_df["age"] = pd.to_numeric(patients_df["Age"], errors="coerce").round(
         decimals=0
@@ -209,26 +214,31 @@ def _parse_date_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
                 r"\d{1,2}/\d{1,2}/\d{2,4}",
                 x,
             )
-            # Look for known error date patterns
-            match_error = re.search(r"\d{4}-\d{2}-\d{2}", x)
-            if match_standard is not None:
-                _x = pd.to_datetime(match_standard.group(), dayfirst=False)
-            elif match_error is not None:
-                _x = pd.to_datetime(match_error.group())
+            if match_standard:
+                # Coerce into US date format
+                _x = pd.to_datetime(
+                    match_standard.group(), dayfirst=False, errors="coerce"
+                )
+            else:
+                # Look for known error date patterns
+                match_error = re.search(r"\d{4}-\d{2}-\d{2}", x)
+                if match_error:
+                    _x = pd.to_datetime(match_error.group(), errors="coerce")
 
         return _x
 
     # Cleaning and preprocessing for columns expected in US style dates -
     # https://nhsx.github.io/covid-chest-imaging-database/faq.html
-    for col in _US_DATE_COLS:
+    for col in [col for col in _US_DATE_COLS if col in patients_df]:
         patients_df[col.lower().replace(" ", "_")] = patients_df[col].map(
             lambda x: _clean_us_dates(x)
         )
 
     # Parsing of columns expected in UK style dates
-    patients_df["swab_date"] = pd.to_datetime(
-        patients_df["SwabDate"], dayfirst=True, errors="coerce"
-    )
+    if "SwabDate" in patients_df:
+        patients_df["swab_date"] = pd.to_datetime(
+            patients_df["SwabDate"], dayfirst=True, errors="coerce"
+        )
     patients_df["filename_earliest_date"] = pd.to_datetime(
         patients_df["filename_earliest_date"], dayfirst=True
     )
@@ -268,28 +278,38 @@ def _parse_binary_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
         )
 
     # map and merge 'PMH h1pertension column'
-    patients_df["pmh_hypertension"] = patients_df["pmh_hypertension"].fillna(
-        patients_df["PMH h1pertension"].map({"1": True, "1es": True})
-    )
+    if "PMH h1pertension" in patients_df:
+        patients_df["pmh_hypertension"] = patients_df["pmh_hypertension"].fillna(
+            patients_df["PMH h1pertension"].map({"1": True, "1es": True})
+        )
 
     # merge old column and map to binary
     # not merging 'PMH diabetes mellitus TYPE I'
     # because only 12 entries and accuracy uncertain
-    patients_df["pmh_diabetes_mellitus_type_2"] = (
-        patients_df["PMH diabetes mellitus type II"]
-        .fillna(patients_df["PMH diabetes mellitus TYPE II"])
-        .map({0: False, "0": False, "0.0": False, 1: True, "1": True, "1.0": True})
-    )
+    if "PMH diabetes mellitus type II" in patients_df:
+        patients_df["pmh_diabetes_mellitus_type_2"] = patients_df[
+            "PMH diabetes mellitus type II"
+        ].copy()
+        if "PMH diabetes mellitus TYPE II" in patients_df:
+            # Fill in from misspelled original field, see "TYPE" instead of "type"
+            patients_df["pmh_diabetes_mellitus_type_2"] = patients_df[
+                "pmh_diabetes_mellitus_type_2"
+            ].fillna(patients_df["PMH diabetes mellitus TYPE II"])
+        # finish up remapping
+        patients_df["pmh_diabetes_mellitus_type_2"] = patients_df[
+            "pmh_diabetes_mellitus_type_2"
+        ].map({0: False, "0": False, "0.0": False, 1: True, "1": True, "1.0": True})
 
     return patients_df
 
 
 def _parse_cat_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
 
-    # Remove known errors such as ' '
-    patients_df["pack_year_history"] = patients_df["Pack year history"].str.extract(
-        r"(\d+)"
-    )
+    if "Pack year history" in patients_df:
+        # Remove known errors such as ' '
+        patients_df["pack_year_history"] = patients_df["Pack year history"].str.extract(
+            r"(\d+)"
+        )
 
     # strip digits from strings and exclude values outside of schema
     # "Unknown" categories mapped to nan if they exist
