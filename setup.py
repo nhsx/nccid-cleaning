@@ -8,14 +8,10 @@ setuptools.setup(
     author="NHSX",,
     url="git@github.com:nhsx/nccid-cleaning.git",
     packages=setuptools.find_packages(),
-    install_requires=["pydicom", "pandas", "tqdm"],
+    install_requires=["pandas"],
     extras_require={
         "notebooks": [
             "jupyter",
-            "cufflinks==0.17.3",
-            "plotly==4.12.0",
-            "matplotlib==3.3.2",
-            "kaleido==0.0.3.post1",
             "pandas==1.14.0",
         ],
     },
