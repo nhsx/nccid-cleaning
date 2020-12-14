@@ -6,7 +6,7 @@ setuptools.setup(
     description="Cleaning pipeline for the the National"
         + "COVID-19 Chest Imaging Database (NCCID) clinical data.",
     author="NHSX",
-    url="git@github.com:nhsx/nccid-cleaning.git",
+    url="https://github.com/nhsx/nccid-cleaning",
     packages=setuptools.find_packages(),
     install_requires=["pandas"],
     extras_require={
