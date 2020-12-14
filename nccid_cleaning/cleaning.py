@@ -1,0 +1,408 @@
+import re
+from typing import Callable, Collection, Optional
+
+import numpy as np
+import pandas as pd
+
+# Mapping can be found in the submission spreadsheet
+# https://medphys.royalsurrey.nhs.uk/nccid/guidance/COVID-19_NCCID_covid_positive_data_template_v1_5.xlsx
+
+_ETHNICITY_MAPPING = {
+    "A": "White",
+    "B": "White",
+    "C": "White",
+    "D": "Multiple",
+    "E": "Multiple",
+    "F": "Multiple",
+    "G": "Multiple",
+    "H": "Asian",
+    "J": "Asian",
+    "K": "Asian",
+    "L": "Asian",
+    "M": "Black",
+    "N": "Black",
+    "P": "Black",
+    "R": "Asian",
+    "S": "Other",
+    "Indian": "Asian",
+    "Pakistani": "Asian",
+    "Chinese": "Asian",
+    "Caribbean": "Black",
+    "African": "Black",
+    "Any other ethnic group": "Other",
+    "Any other Black background": "Black",
+    "Any other Asian background": "Asian",
+}
+_ETHNICITY_MAPPING = {k.lower(): v for k, v in _ETHNICITY_MAPPING.items()}
+_ETHNICITY_MAPPING.update({v.lower(): v for v in set(_ETHNICITY_MAPPING.values())})
+_ETHNICITY_MAPPING.update({np.nan: "Unknown"})
+
+_SEX_MAPPING = {"1": "M", "0": "F", "2": "Unknown", "3": "Unknown"}
+_SEX_MAPPING = {k.lower(): v for k, v in _SEX_MAPPING.items()}
+_SEX_MAPPING.update({v.lower(): v for v in set(_SEX_MAPPING.values())})
+_SEX_MAPPING.update({np.nan: "Unknown"})
+
+_TEST_RESULT_MAPPING = {
+    0: "Negative",
+    "0": "Negative",
+    1: "Positive",
+    "1": "Positive",
+    "RNA DETECTED (SARS-CoV-2)": "Positive",
+}
+
+_US_DATE_COLS = [
+    "Date of Positive Covid Swab",
+    "Date of acquisition of 1st RT-PCR",
+    "Date of acquisition of 2nd RT-PCR",
+    "Date of result of 1st RT-PCR",
+    "Date of result of 2nd RT-PCR",
+    "Date of admission",
+    "Date of ITU admission",
+    "Date of intubation",
+    "Date of 1st CXR",
+    "Date of 2nd CXR",
+    "Date last known alive",
+    "Date of death",
+]
+
+
+def _remap_ethnicity(patients_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Remap ethnicities to standardised groupings.
+    """
+    _ETHNICITY_MAPPING.update(
+        {
+            e.lower(): "Multiple"
+            for e in patients_df["Ethnicity"].unique()
+            if "mixed" in str(e).lower() or "multiple" in str(e).lower()
+        }
+    )
+    _ETHNICITY_MAPPING.update(
+        {
+            e.lower(): "White"
+            for e in patients_df["Ethnicity"].unique()
+            if "white" in str(e).lower()
+        }
+    )
+    _ETHNICITY_MAPPING.update(
+        {
+            str(e).lower(): "Unknown"
+            for e in patients_df["Ethnicity"].unique()
+            if str(e).lower() not in _ETHNICITY_MAPPING
+        }
+    )
+
+    patients_df["ethnicity"] = (
+        patients_df["Ethnicity"].str.lower().replace(_ETHNICITY_MAPPING)
+    )
+
+    return patients_df
+
+
+def _remap_sex(patients_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Remap sex to F/M/Unknown
+    """
+    patients_df["sex"] = patients_df["Sex"].str.lower().replace(_SEX_MAPPING)
+    return patients_df
+
+
+def _coerce_numeric_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Force fields to be numeric
+    """
+
+    def _extract_clinical_values(x, kind="single") -> float:
+        """
+        Extracts data from known errors in BP entries
+        """
+
+        if x.replace(".", "", 1).isnumeric():
+            return float(x)
+
+        elif kind == "single":
+            # check for known error pattern "[#value] - 2020-03-04"
+            match_error = re.search(r"\[(\d+\.?\d+)\]", x)
+            if match_error:
+                return float(match_error.group(1))
+        else:
+            # Or "[170/70] - 2020-03-04" for blood pressure values
+            match_error = re.search(
+                r"\[(?P<systolic>\d{2,3})/(?P<diastolic>\d{2,3})\]", x
+            )
+            if match_error and kind == "systolic":
+                return float(match_error.group("systolic"))
+            elif match_error and kind == "diastolic":
+                return float(match_error.group("diastolic"))
+
+    # standard clinical columns to be cleaned
+    clinical_columns = (
+        "Duration of symptoms",
+        "Respiratory rate on admission",
+        "Heart rate on admission",
+        "NEWS2 score on arrival",
+        "APACHE score on ITU arrival",
+        "PaO2",
+        "Creatinine on admission",
+        "D-dimer on admission",  # units vary between sites
+        "Fibrinogen  if d-dimer not performed",
+        "WCC on admission",
+        "Lymphocyte count on admission",
+        "Platelet count on admission",
+        "CRP on admission",  # mg/L large variance expected
+        "Urea on admission",  # units vary ng/ml vs mmol/L
+        "O2 saturation",
+        "Temperature on admission",
+        "Ferritin",  # most sites use ug/L
+        "Troponin I",  # sites vary between ng/L and ng/ml
+        "Troponin T",  # not widely used by sites
+    )
+    for col in clinical_columns:
+        new_col = col.lower().replace(" ", "_").replace(",", "")
+        patients_df[new_col] = patients_df[col].map(
+            lambda x: _extract_clinical_values(str(x), kind="single")
+        )
+    # blood pressure columns
+    patients_df["systolic_bp"] = patients_df["Systolic BP"].map(
+        lambda x: _extract_clinical_values(str(x), kind="systolic")
+    )
+    patients_df["diastolic_bp"] = patients_df["Diastolic BP"].map(
+        lambda x: _extract_clinical_values(str(x), kind="diastolic")
+    )
+
+    # remove values outside reasonable range where range is known
+    # expected in celcius so clipped to 25- 45
+    patients_df["temperature_on_admission"] = patients_df[
+        "temperature_on_admission"
+    ].apply(lambda x: x if 25 <= x <= 45 else np.nan)
+    # expected in g/L
+    patients_df["fibrinogen__if_d-dimer_not_performed"] = patients_df[
+        "fibrinogen__if_d-dimer_not_performed"
+    ].map(lambda x: x if 0 <= x <= 100 else np.nan)
+    # these fields are expected in the range 0-100
+    patients_df["urea_on_admission"] = patients_df["urea_on_admission"].map(
+        lambda x: x if 0 <= x <= 100 else np.nan
+    )
+    patients_df["o2_saturation"] = patients_df["o2_saturation"].map(
+        lambda x: x if 0 <= x <= 100 else np.nan
+    )
+    # age (round to nearest year)
+    patients_df["age"] = pd.to_numeric(patients_df["Age"], errors="coerce").round(
+        decimals=0
+    )
+
+    return patients_df
+
+
+def _parse_date_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
+    def _clean_us_dates(x: str) -> pd.datetime:
+        """Converts fields expected in US date format MM/DD/YY
+        into pd.datetime dates. Dates are pulled out from entries with
+        known errors of the form '[Text] - YYYY-MM-DD'.
+        Other known errors e.g., '.', ' ',
+        and unknown errors are parsed as pd.NaT"""
+
+        _x = pd.NaT
+        if isinstance(x, str):
+            # Look for expected date patterns MM/DD/YY or MM/DD/YYYY to datetime
+            match_standard = re.search(
+                r"\d{1,2}/\d{1,2}/\d{2,4}",
+                x,
+            )
+            # Look for known error date patterns
+            match_error = re.search(r"\d{4}-\d{2}-\d{2}", x)
+            if match_standard is not None:
+                _x = pd.to_datetime(match_standard.group(), dayfirst=False)
+            elif match_error is not None:
+                _x = pd.to_datetime(match_error.group())
+
+        return _x
+
+    # Cleaning and preprocessing for columns expected in US style dates -
+    # https://nhsx.github.io/covid-chest-imaging-database/faq.html
+    for col in _US_DATE_COLS:
+        patients_df[col.lower().replace(" ", "_")] = patients_df[col].map(
+            lambda x: _clean_us_dates(x)
+        )
+
+    # Parsing of columns expected in UK style dates
+    patients_df["swab_date"] = pd.to_datetime(
+        patients_df["SwabDate"], dayfirst=True, errors="coerce"
+    )
+    patients_df["filename_earliest_date"] = pd.to_datetime(
+        patients_df["filename_earliest_date"], dayfirst=True
+    )
+    patients_df["filename_latest_date"] = pd.to_datetime(
+        patients_df["filename_latest_date"], dayfirst=True
+    )
+
+    # Calculate the latest swab date
+    patients_df["latest_swab_date"] = pd.concat(
+        [
+            patients_df["date_of_positive_covid_swab"],
+            patients_df["swab_date"],
+        ],
+        axis=1,
+    ).max(axis=1)
+
+    return patients_df
+
+
+def _parse_binary_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
+
+    # 'Unknown' mapped to NaN
+    binary_columns = (
+        "PMH hypertension",
+        "PMH CKD",
+        "Current ACEi use",
+        "Current Angiotension receptor blocker use",
+        "Current NSAID used",
+        "ITU admission",
+        "Intubation",
+        "Death",
+    )
+
+    for col in binary_columns:
+        patients_df[col.lower().replace(" ", "_")] = patients_df[col].map(
+            {0: False, "0": False, "0.0": False, 1: True, "1": True, "1.0": True}
+        )
+
+    # map and merge 'PMH h1pertension column'
+    patients_df["pmh_hypertension"] = patients_df["pmh_hypertension"].fillna(
+        patients_df["PMH h1pertension"].map({"1": True, "1es": True})
+    )
+
+    # merge old column and map to binary
+    # not merging 'PMH diabetes mellitus TYPE I'
+    # because only 12 entries and accuracy uncertain
+    patients_df["pmh_diabetes_mellitus_type_2"] = (
+        patients_df["PMH diabetes mellitus type II"]
+        .fillna(patients_df["PMH diabetes mellitus TYPE II"])
+        .map({0: False, "0": False, "0.0": False, 1: True, "1": True, "1.0": True})
+    )
+
+    return patients_df
+
+
+def _parse_cat_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
+
+    # Remove known errors such as ' '
+    patients_df["pack_year_history"] = patients_df["Pack year history"].str.extract(
+        r"(\d+)"
+    )
+
+    # strip digits from strings and exclude values outside of schema
+    # "Unknown" categories mapped to nan if they exist
+    schema_values = {
+        "Smoking status": ["0", "1", "2"],
+        "If CKD, stage": ["2", "3", "4", "5"],
+        "PMH CVS disease": ["0", "1", "2", "3", "4"],
+        "PMH Lung disease": ["0", "1", "2", "3", "4", "5"],
+        "CXR severity": ["1", "2", "3"],
+        "CXR severity 3": ["1", "2", "3"],
+        "COVID CODE": ["0", "1", "2", "3"],
+        "COVID CODE 2": ["0", "1", "2", "3"],
+    }
+    for col in schema_values.keys():
+        new_col = col.lower().replace(" ", "_").replace(",", "")
+        patients_df[new_col] = patients_df[col].astype(str).str.extract(r"(\d+)")
+        patients_df[new_col] = patients_df[new_col].loc[
+            patients_df[new_col].isin(schema_values[col])
+        ]
+
+    return patients_df
+
+
+def _remap_test_result_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
+
+    # maps entries of 'RNA DETECTED (SARS-CoV-2)' to positive
+    result_columns = ("1st RT-PCR result", "2nd RT-PCR result", "Final COVID Status")
+
+    for col in result_columns:
+        patients_df[col.lower().replace(" ", "_")] = patients_df[col].map(
+            _TEST_RESULT_MAPPING
+        )
+    return patients_df
+
+
+def _rescale_fio2(patients_df: pd.DataFrame) -> pd.DataFrame:
+    """Remaps FiO2 entries to the % scale."""
+
+    def _fiO2_mapping(x: str) -> Optional[int]:
+        values_to_percentage = {
+            "1": "25",
+            "2": "29",
+            "3": "33",
+            "4": "37",
+            "5": "41",
+            "6": "45",
+            "7": "41",
+            "8": "47",
+            "9": "53",
+            "10": "60",
+            "11": "80",
+            "12": "85",
+            "13": "90",
+            "14": "95",
+            "15": "100",
+            "blue": "24",
+            "white": "28",
+            "orange": "31",
+            "yellow": "35",
+            "red": "40",
+            "green": "60",
+        }
+        _x = x
+        if "." in x:
+            # decimal entries are converted to percentages
+            # put inside 'try' to catch edge cases such as "."
+            try:
+                _x = str(round(float(x) * 100))
+            except ValueError:
+                _x = None
+        elif "l" in x.lower():
+            try:
+                _x = values_to_percentage[x.lower().rstrip("l")]
+            except KeyError:
+                _x = None
+        elif x in values_to_percentage.keys():
+            _x = values_to_percentage[str(x)]
+
+        # makes sure new value is in % value range
+        if _x.isdigit() and 0 <= int(_x) <= 100:
+            return int(_x)
+        else:
+            return None
+
+    patients_df["fiO2_percentage"] = patients_df["FiO2"].map(
+        lambda x: _fiO2_mapping(str(x))
+    )
+    return patients_df
+
+
+
+patient_df_pipeline = (
+    _remap_ethnicity,
+    _remap_sex,
+    _coerce_numeric_columns,
+    _parse_date_columns,
+    _parse_binary_columns,
+    _parse_cat_columns,
+    _remap_test_result_columns,
+    _rescale_fio2,
+)
+
+
+def clean_data_df(
+    data_df: pd.DataFrame,
+    cleaning_pipeline: Collection[Callable],
+) -> pd.DataFrame:
+    """
+    Run the data through a list of cleaning functions with signature
+    f(pd.DataFrame) -> pd.DataFrame
+    """
+
+    for cleaning_function in cleaning_pipeline:
+        data_df = data_df.pipe(cleaning_function)
+
+    return data_df
