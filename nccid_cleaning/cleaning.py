@@ -239,13 +239,7 @@ def _parse_date_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
         patients_df["swab_date"] = pd.to_datetime(
             patients_df["SwabDate"], dayfirst=True, errors="coerce"
         )
-    patients_df["filename_earliest_date"] = pd.to_datetime(
-        patients_df["filename_earliest_date"], dayfirst=True
-    )
-    patients_df["filename_latest_date"] = pd.to_datetime(
-        patients_df["filename_latest_date"], dayfirst=True
-    )
-
+    
     # Calculate the latest swab date
     patients_df["latest_swab_date"] = pd.concat(
         [
