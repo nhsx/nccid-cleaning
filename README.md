@@ -6,6 +6,12 @@ For an overview of the NCCID and available data please visit the [NCCID website]
 
 ### Installation
 
+```python
+git clone git@github.com:nhsx/nccid-cleaning.git
+cd nccid-cleaning
+pip intall .
+```
+
 ### Running 
 To run the cleaning pipeline execute the following code:
 ```python
