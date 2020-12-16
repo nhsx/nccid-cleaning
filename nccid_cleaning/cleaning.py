@@ -108,7 +108,7 @@ def _remap_sex(patients_df: pd.DataFrame) -> pd.DataFrame:
     Remap sex to F/M/Unknown
     """
     try:
-        patients_df["sex"] = patients_df["Sex"].str.lower().replace(_SEX_MAPPING)
+        patients_df["sex"] = patients_df["Sex"].str.lower().map(_SEX_MAPPING)
     except AttributeError:
         # If the column is all empty, the .str call would break as non-string is inferred
         pass
@@ -243,16 +243,16 @@ def _parse_date_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
 
     # Parsing of columns expected in UK style dates
     if "SwabDate" in patients_df:
-        patients_df["swab_date"] = pd.to_datetime(
+        patients_df["swabdate"] = pd.to_datetime(
             patients_df["SwabDate"], dayfirst=True, errors="coerce"
         )
     
     # Calculate the latest swab date
-    if "swab_date" and "date_of_positive_covid_swab" in patients_df:
+    if "swabdate" and "date_of_positive_covid_swab" in patients_df:
         patients_df["latest_swab_date"] = pd.concat(
             [
                 patients_df["date_of_positive_covid_swab"],
-                patients_df["swab_date"],
+                patients_df["swabdate"],
             ],
             axis=1,
         ).max(axis=1)
