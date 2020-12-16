@@ -199,8 +199,8 @@ def _coerce_numeric_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
         )
     # age (round to nearest year)
     if "Age" in patients_df:
-        patients_df["age"] = pd.to_numeric(patients_df["Age"], errors="coerce").round(
-            decimals=0
+        patients_df["age"] = pd.to_numeric(patients_df["Age"], errors="coerce").apply(
+            np.floor
         )
 
     return patients_df
