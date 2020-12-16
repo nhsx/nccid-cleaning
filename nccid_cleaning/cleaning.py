@@ -199,8 +199,9 @@ def _coerce_numeric_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
         )
     # age (round to nearest year)
     if "Age" in patients_df:
-        patients_df["age"] = pd.to_numeric(patients_df["Age"], errors="coerce").apply(
-            np.floor
+        patients_df["age"] = (
+            pd.to_numeric(patients_df["Age"], errors="coerce")
+            .apply(np.floor)
         )
 
     return patients_df
@@ -396,8 +397,8 @@ def _rescale_fio2(patients_df: pd.DataFrame) -> pd.DataFrame:
         else:
             return None
 
-    if "Fi02" in patients_df:
-        patients_df["fiO2_percentage"] = patients_df["FiO2"].map(
+    if "FiO2" in patients_df:
+        patients_df["fio2"] = patients_df["FiO2"].map(
             lambda x: _fiO2_mapping(str(x))
         )
     return patients_df
