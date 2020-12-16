@@ -181,13 +181,27 @@ def _coerce_numeric_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
             lambda x: _extract_clinical_values(str(x), kind="diastolic")
         )
 
+    # age (round to nearest year)
+    if "Age" in patients_df:
+        patients_df["age"] = pd.to_numeric(patients_df["Age"], errors="coerce").apply(
+            np.floor
+        )
+
+    return patients_df
+
+
+def _clip_numeric_values(patients_df: pd.DataFrame) -> pd.DataFrame:
+    """Removed values outside of expected limits.
+    Can only be called after _coerce_numeric_columns.
+    """
     # remove values outside reasonable range where range is known
-    # expected in celcius so clipped to 25- 45
     if "temperature_on_admission" in patients_df:
+        # expected in celcius so clipped to 25- 45
         patients_df["temperature_on_admission"] = patients_df[
             "temperature_on_admission"
         ].apply(lambda x: x if 25 <= x <= 45 else np.nan)
 
+    # expected in the 0-100 range
     cols100range = [
         "fibrinogen__if_d-dimer_not_performed",
         "urea_on_admission",
@@ -196,12 +210,6 @@ def _coerce_numeric_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
     for col in [col for col in cols100range if col in patients_df]:
         patients_df[col] = patients_df[col].map(
             lambda x: x if 0 <= x <= 100 else np.nan
-        )
-    # age (round to nearest year)
-    if "Age" in patients_df:
-        patients_df["age"] = (
-            pd.to_numeric(patients_df["Age"], errors="coerce")
-            .apply(np.floor)
         )
 
     return patients_df
@@ -398,9 +406,20 @@ def _rescale_fio2(patients_df: pd.DataFrame) -> pd.DataFrame:
             return None
 
     if "FiO2" in patients_df:
-        patients_df["fio2"] = patients_df["FiO2"].map(
-            lambda x: _fiO2_mapping(str(x))
+        patients_df["fio2"] = patients_df["FiO2"].map(lambda x: _fiO2_mapping(str(x)))
+    return patients_df
+
+
+def _fix_headers(patients_df: pd.DataFrame) -> pd.DataFrame:
+    """Fixes known mistakes in column headers.
+    Should always be run last as it acts on the cleaned columns.
+    """
+    if "cxr_severity_3" in patients_df:
+        patients_df.rename(
+            columns={"cxr_severity_3": "cxr_severity_2"},
+            inplace=True,
         )
+
     return patients_df
 
 
@@ -408,11 +427,13 @@ patient_df_pipeline = (
     _remap_ethnicity,
     _remap_sex,
     _coerce_numeric_columns,
+    _clip_numeric_values,
     _parse_date_columns,
     _parse_binary_columns,
     _parse_cat_columns,
     _remap_test_result_columns,
     _rescale_fio2,
+    _fix_headers,
 )
 
 
