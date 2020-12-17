@@ -25,10 +25,6 @@
 # Mac OS-specific storage files
 .DS_Store
 
-
-# notebook csv and png files
-notebooks/plots/*.png
-
 # secret
 .secret
 
