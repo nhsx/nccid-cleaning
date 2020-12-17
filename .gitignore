@@ -1,0 +1,33 @@
+# Byte-compiled / optimized / DLL files
+*__pycache__*
+*.py[cod]
+*.egg-info/
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+.eggs/
+
+# DotEnv configuration
+.env
+
+# Jupyter NB Checkpoints
+.ipynb_checkpoints/
+
+# nox directory
+.nox/
+
+# exclude data from source control by default
+/data/
+
+# Mac OS-specific storage files
+.DS_Store
+
+# secret
+.secret
+
+# coverage report
+.coverage
+

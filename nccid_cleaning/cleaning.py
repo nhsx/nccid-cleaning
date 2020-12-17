@@ -107,7 +107,18 @@ def _remap_sex(patients_df: pd.DataFrame) -> pd.DataFrame:
     """
     Remap sex to F/M/Unknown
     """
-    patients_df["sex"] = patients_df["Sex"].str.lower().replace(_SEX_MAPPING)
+    try:
+        patients_df["sex"] = (
+            patients_df["Sex"]
+            .str
+            .lower()
+            .map(_SEX_MAPPING)
+            .replace({np.nan:"Unknown"})
+            )
+    except AttributeError:
+        # If the column is all empty, the .str call would break as non-string is inferred
+        pass
+
     return patients_df
 
 
@@ -176,12 +187,27 @@ def _coerce_numeric_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
             lambda x: _extract_clinical_values(str(x), kind="diastolic")
         )
 
+    # age (round to nearest year)
+    if "Age" in patients_df:
+        patients_df["age"] = pd.to_numeric(patients_df["Age"], errors="coerce").apply(
+            np.floor
+        )
+
+    return patients_df
+
+
+def _clip_numeric_values(patients_df: pd.DataFrame) -> pd.DataFrame:
+    """Removed values outside of expected limits.
+    Can only be called after _coerce_numeric_columns.
+    """
     # remove values outside reasonable range where range is known
-    # expected in celcius so clipped to 25- 45
-    patients_df["temperature_on_admission"] = patients_df[
-        "temperature_on_admission"
-    ].apply(lambda x: x if 25 <= x <= 45 else np.nan)
-    # expected in g/L
+    if "temperature_on_admission" in patients_df:
+        # expected in celcius so clipped to 25- 45
+        patients_df["temperature_on_admission"] = patients_df[
+            "temperature_on_admission"
+        ].apply(lambda x: x if 25 <= x <= 45 else np.nan)
+
+    # expected in the 0-100 range
     cols100range = [
         "fibrinogen__if_d-dimer_not_performed",
         "urea_on_admission",
@@ -191,10 +217,6 @@ def _coerce_numeric_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
         patients_df[col] = patients_df[col].map(
             lambda x: x if 0 <= x <= 100 else np.nan
         )
-    # age (round to nearest year)
-    patients_df["age"] = pd.to_numeric(patients_df["Age"], errors="coerce").round(
-        decimals=0
-    )
 
     return patients_df
 
@@ -236,24 +258,19 @@ def _parse_date_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
 
     # Parsing of columns expected in UK style dates
     if "SwabDate" in patients_df:
-        patients_df["swab_date"] = pd.to_datetime(
+        patients_df["swabdate"] = pd.to_datetime(
             patients_df["SwabDate"], dayfirst=True, errors="coerce"
         )
-    patients_df["filename_earliest_date"] = pd.to_datetime(
-        patients_df["filename_earliest_date"], dayfirst=True
-    )
-    patients_df["filename_latest_date"] = pd.to_datetime(
-        patients_df["filename_latest_date"], dayfirst=True
-    )
-
+    
     # Calculate the latest swab date
-    patients_df["latest_swab_date"] = pd.concat(
-        [
-            patients_df["date_of_positive_covid_swab"],
-            patients_df["swab_date"],
-        ],
-        axis=1,
-    ).max(axis=1)
+    if "swabdate" and "date_of_positive_covid_swab" in patients_df:
+        patients_df["latest_swab_date"] = pd.concat(
+            [
+                patients_df["date_of_positive_covid_swab"],
+                patients_df["swabdate"],
+            ],
+            axis=1,
+        ).max(axis=1)
 
     return patients_df
 
@@ -272,7 +289,7 @@ def _parse_binary_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
         "Death",
     )
 
-    for col in binary_columns:
+    for col in [col for col in binary_columns if col in patients_df]:
         patients_df[col.lower().replace(" ", "_")] = patients_df[col].map(
             {0: False, "0": False, "0.0": False, 1: True, "1": True, "1.0": True}
         )
@@ -291,7 +308,7 @@ def _parse_binary_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
             "PMH diabetes mellitus type II"
         ].copy()
         if "PMH diabetes mellitus TYPE II" in patients_df:
-            # Fill in from misspelled original field, see "TYPE" instead of "type"
+            # Fill in from capitalised original field, see "TYPE" instead of "type"
             patients_df["pmh_diabetes_mellitus_type_2"] = patients_df[
                 "pmh_diabetes_mellitus_type_2"
             ].fillna(patients_df["PMH diabetes mellitus TYPE II"])
@@ -323,7 +340,7 @@ def _parse_cat_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
         "COVID CODE": ["0", "1", "2", "3"],
         "COVID CODE 2": ["0", "1", "2", "3"],
     }
-    for col in schema_values.keys():
+    for col in [col for col in schema_values.keys() if col in patients_df]:
         new_col = col.lower().replace(" ", "_").replace(",", "")
         patients_df[new_col] = patients_df[col].astype(str).str.extract(r"(\d+)")
         patients_df[new_col] = patients_df[new_col].loc[
@@ -338,7 +355,7 @@ def _remap_test_result_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
     # maps entries of 'RNA DETECTED (SARS-CoV-2)' to positive
     result_columns = ("1st RT-PCR result", "2nd RT-PCR result", "Final COVID Status")
 
-    for col in result_columns:
+    for col in [col for col in result_columns if col in patients_df]:
         patients_df[col.lower().replace(" ", "_")] = patients_df[col].map(
             _TEST_RESULT_MAPPING
         )
@@ -394,22 +411,35 @@ def _rescale_fio2(patients_df: pd.DataFrame) -> pd.DataFrame:
         else:
             return None
 
-    patients_df["fiO2_percentage"] = patients_df["FiO2"].map(
-        lambda x: _fiO2_mapping(str(x))
-    )
+    if "FiO2" in patients_df:
+        patients_df["fio2"] = patients_df["FiO2"].map(lambda x: _fiO2_mapping(str(x)))
     return patients_df
 
+
+def _fix_headers(patients_df: pd.DataFrame) -> pd.DataFrame:
+    """Fixes known mistakes in column headers.
+    Should always be run last as it acts on the cleaned columns.
+    """
+    if "cxr_severity_3" in patients_df:
+        patients_df.rename(
+            columns={"cxr_severity_3": "cxr_severity_2"},
+            inplace=True,
+        )
+
+    return patients_df
 
 
 patient_df_pipeline = (
     _remap_ethnicity,
     _remap_sex,
     _coerce_numeric_columns,
+    _clip_numeric_values,
     _parse_date_columns,
     _parse_binary_columns,
     _parse_cat_columns,
     _remap_test_result_columns,
     _rescale_fio2,
+    _fix_headers,
 )
 
 

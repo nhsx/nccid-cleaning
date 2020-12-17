@@ -1,0 +1,11 @@
+Pseudonym,SwabStatus,SubmittingCentre,Ethnicity,Age,Sex,SwabDate,Date of Positive Covid Swab,Date of admission,PMH hypertension,PMH h1pertension,PMH Lung disease,PMH diabetes mellitus TYPE II,PMH diabetes mellitus type II,FiO2,Temperature on admission,Systolic BP,Diastolic BP,Ferritin,1st RT-PCR result,CXR severity 3,COVID CODE
+Patient1,0,Centre A,A,12,F,05/05/2020,,05/05/2020,,1,,,0,10L,35,,,3.493,0,, 
+Patient2,,Centre A,White - British,44,M,,3/31/20,31/03/2020,1,,4,,0,100,37.6,126,75,,1,0,3
+Patient3,0,Centre B,J,30.5,0,24/04/2020,,[Text] - 2020-03-20,,1es,0,1,, ,36,[137/91] - 2020-06-02,[137/91] - 2020-06-02,[67] - 2020-06-06,,1,0
+Patient4,,Centre B,C,88,1,,1/24/20,,0,0,6,,1,0.28, ,, ,[345] - 2020-03-27,1,,1
+Patient5,0,Centre A,M,,2,02/04/2020,,[Text] - 2020-05-06,3,,5 - Lung Ca,2,,2,96,,,4532, ,3, 
+Patient6,1,Centre A,A,100, ,06/05/2020,5/6/2020,06/01/2020,1,, ,,2,0,0,[131/68] - 2020-05-14,[131/68] - 2020-05-14,,RNA DETECTED (SARS-CoV-2), ,2
+Patient7,0,Centre A,Unknown,65.889,3,05/16/2020,,,2,,1,,,0.64,,,,400,,2,
+Patient8,0,Centre A,99,,t,15/03/2020,,43909,1, ,2,,,0.8,,72,42, ,,,CVCX2
+Patient9,1,Centre A,not recorded,0,Unknown,30/03/2020,,3/26/20,,1,3,,,,,,,[4452] - 2020-04-07,,o,
+Patient10,0,Centre B,Caribbean,,,,,,,2,,,,white,,103,80,,,,CVCX3
