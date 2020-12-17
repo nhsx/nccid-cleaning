@@ -18,7 +18,7 @@ To run the cleaning pipeline execute the following code:
 from nccid_cleaning import clean_data_df, patient_df_pipeline
 df = clean_data_df(df, patient_df_pipeline)
 ```
-The function ```clean_data_df``` is designed to act on a Pandas DataFrame, containing some or all of the clinical data fields as columns, and 1 or more patients as rows.
+The function `clean_data_df` is designed to act on a Pandas DataFrame, containing some or all of the clinical data fields as columns, and 1 or more patients as rows.
 
 The full cleaning pipeline can be called using the imported Collection ```patient_df_pipeline``` which includes the following functions:
 ```python
