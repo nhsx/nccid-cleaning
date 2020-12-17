@@ -108,7 +108,13 @@ def _remap_sex(patients_df: pd.DataFrame) -> pd.DataFrame:
     Remap sex to F/M/Unknown
     """
     try:
-        patients_df["sex"] = patients_df["Sex"].str.lower().map(_SEX_MAPPING)
+        patients_df["sex"] = (
+            patients_df["Sex"]
+            .str
+            .lower()
+            .map(_SEX_MAPPING)
+            .replace({np.nan:"Unknown"})
+            )
     except AttributeError:
         # If the column is all empty, the .str call would break as non-string is inferred
         pass
