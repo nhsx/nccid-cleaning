@@ -3,52 +3,27 @@ from typing import Callable, Collection, Optional
 
 import numpy as np
 import pandas as pd
+import json
 
 # Mapping can be found in the submission spreadsheet
 # https://medphys.royalsurrey.nhs.uk/nccid/guidance/COVID-19_NCCID_covid_positive_data_template_v1_5.xlsx
 
-_ETHNICITY_MAPPING = {
-    "A": "White",
-    "B": "White",
-    "C": "White",
-    "D": "Multiple",
-    "E": "Multiple",
-    "F": "Multiple",
-    "G": "Multiple",
-    "H": "Asian",
-    "J": "Asian",
-    "K": "Asian",
-    "L": "Asian",
-    "M": "Black",
-    "N": "Black",
-    "P": "Black",
-    "R": "Asian",
-    "S": "Other",
-    "Indian": "Asian",
-    "Pakistani": "Asian",
-    "Chinese": "Asian",
-    "Caribbean": "Black",
-    "African": "Black",
-    "Any other ethnic group": "Other",
-    "Any other Black background": "Black",
-    "Any other Asian background": "Asian",
-}
+# Category maps
+with open("../resources/category_maps.json", "r") as f:
+    category_maps = json.load(f)
+
+_ETHNICITY_MAPPING = category_maps["ethnicity"]
 _ETHNICITY_MAPPING = {k.lower(): v for k, v in _ETHNICITY_MAPPING.items()}
 _ETHNICITY_MAPPING.update({v.lower(): v for v in set(_ETHNICITY_MAPPING.values())})
 _ETHNICITY_MAPPING.update({np.nan: "Unknown"})
 
-_SEX_MAPPING = {"1": "M", "0": "F", "2": "Unknown", "3": "Unknown"}
+_SEX_MAPPING = category_maps["sex"]
 _SEX_MAPPING = {k.lower(): v for k, v in _SEX_MAPPING.items()}
 _SEX_MAPPING.update({v.lower(): v for v in set(_SEX_MAPPING.values())})
 _SEX_MAPPING.update({np.nan: "Unknown"})
 
-_TEST_RESULT_MAPPING = {
-    0: "Negative",
-    "0": "Negative",
-    1: "Positive",
-    "1": "Positive",
-    "RNA DETECTED (SARS-CoV-2)": "Positive",
-}
+_TEST_RESULT_MAPPING = category_maps["test_results"]
+_TEST_RESULT_MAPPING.update({0: "Negative", 1: "Positive"})
 
 _US_DATE_COLS = [
     "Date of Positive Covid Swab",
@@ -262,17 +237,17 @@ def _parse_date_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
             patients_df["SwabDate"], dayfirst=True, errors="coerce"
         )
     
-    # Calculate the latest swab date
-    if "swabdate" and "date_of_positive_covid_swab" in patients_df:
-        patients_df["latest_swab_date"] = pd.concat(
-            [
-                patients_df["date_of_positive_covid_swab"],
-                patients_df["swabdate"],
-            ],
-            axis=1,
-        ).max(axis=1)
-
-    return patients_df
+        # Calculate the latest swab date
+        if "swabdate" and "date_of_positive_covid_swab" in patients_df:
+            patients_df["latest_swab_date"] = pd.concat(
+                [
+                    patients_df["date_of_positive_covid_swab"],
+                    patients_df["swabdate"],
+                ],
+                axis=1,
+            ).max(axis=1)
+    
+        return patients_df
 
 
 def _parse_binary_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
