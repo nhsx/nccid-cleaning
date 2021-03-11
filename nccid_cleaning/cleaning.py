@@ -40,6 +40,12 @@ _US_DATE_COLS = [
     "Date of death",
 ]
 
+def _clean_name(name: str) -> str:
+    """
+    Returns name of new cleaned column. Cleaned columns names are fully
+    lowercase, whitespace is replaced with underscores, and commas are removed. 
+    """
+    return name.lower().replace(" ", "_").replace(",", "")
 
 def _remap_ethnicity(patients_df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -148,8 +154,7 @@ def _coerce_numeric_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
         "Troponin T",  # not widely used by sites
     )
     for col in [col for col in clinical_columns if col in patients_df]:
-        new_col = col.lower().replace(" ", "_").replace(",", "")
-        patients_df[new_col] = patients_df[col].map(
+        patients_df[_clean_name(col)] = patients_df[col].map(
             lambda x: _extract_clinical_values(str(x), kind="single")
         )
     # blood pressure columns
@@ -227,7 +232,7 @@ def _parse_date_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
     # Cleaning and preprocessing for columns expected in US style dates -
     # https://nhsx.github.io/covid-chest-imaging-database/faq.html
     for col in [col for col in _US_DATE_COLS if col in patients_df]:
-        patients_df[col.lower().replace(" ", "_")] = patients_df[col].map(
+        patients_df[_clean_name(col)] = patients_df[col].map(
             lambda x: _clean_us_dates(x)
         )
 
@@ -265,7 +270,7 @@ def _parse_binary_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
     )
 
     for col in [col for col in binary_columns if col in patients_df]:
-        patients_df[col.lower().replace(" ", "_")] = patients_df[col].map(
+        patients_df[_clean_name(col)] = patients_df[col].map(
             {0: False, "0": False, "0.0": False, 1: True, "1": True, "1.0": True}
         )
 
@@ -316,7 +321,7 @@ def _parse_cat_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
         "COVID CODE 2": ["0", "1", "2", "3"],
     }
     for col in [col for col in schema_values.keys() if col in patients_df]:
-        new_col = col.lower().replace(" ", "_").replace(",", "")
+        new_col = _clean_name(col)
         patients_df[new_col] = patients_df[col].astype(str).str.extract(r"(\d+)")
         patients_df[new_col] = patients_df[new_col].loc[
             patients_df[new_col].isin(schema_values[col])
@@ -331,7 +336,7 @@ def _remap_test_result_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
     result_columns = ("1st RT-PCR result", "2nd RT-PCR result", "Final COVID Status")
 
     for col in [col for col in result_columns if col in patients_df]:
-        patients_df[col.lower().replace(" ", "_")] = patients_df[col].map(
+        patients_df[_clean_name(col)] = patients_df[col].map(
             _TEST_RESULT_MAPPING
         )
     return patients_df
