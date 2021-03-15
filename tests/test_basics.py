@@ -1,6 +1,5 @@
 # content of test_sysexit.py
 import pandas as pd
-import pytest
 
 import nccid_cleaning as nc
 
@@ -22,7 +21,9 @@ def test_example():
         "covid_code": "object",
     }
     df_target = pd.read_csv(
-        "notebooks/data/example_cleaned.csv", parse_dates=date_cols, dtype=dtypes
+        "notebooks/data/example_cleaned.csv",
+        parse_dates=date_cols,
+        dtype=dtypes,
     )
 
     # Do actual cleaning
