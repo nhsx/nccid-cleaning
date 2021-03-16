@@ -3,7 +3,7 @@ import setuptools
 setuptools.setup(
     name="nccid_cleaning",
     use_scm_version=True,
-    setup_requires=['setuptools_scm'],
+    setup_requires=["setuptools_scm"],
     description="Cleaning pipeline for the the National"
     + "COVID-19 Chest Imaging Database (NCCID) clinical data.",
     author="NHSX",
