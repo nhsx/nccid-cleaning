@@ -264,18 +264,18 @@ def _parse_date_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
         patients_df["swabdate"] = pd.to_datetime(
             patients_df["SwabDate"], dayfirst=True, errors="coerce"
         )
-
-    # Calculate the latest swab date
-    if "swabdate" and "date_of_positive_covid_swab" in patients_df:
-        patients_df["latest_swab_date"] = pd.concat(
-            [
-                patients_df["date_of_positive_covid_swab"],
-                patients_df["swabdate"],
-            ],
-            axis=1,
-        ).max(axis=1)
-
-    return patients_df
+    
+        # Calculate the latest swab date
+        if "swabdate" and "date_of_positive_covid_swab" in patients_df:
+            patients_df["latest_swab_date"] = pd.concat(
+                [
+                    patients_df["date_of_positive_covid_swab"],
+                    patients_df["swabdate"],
+                ],
+                axis=1,
+            ).max(axis=1)
+    
+        return patients_df
 
 
 def _parse_binary_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
