@@ -9,7 +9,7 @@ import json
 # https://medphys.royalsurrey.nhs.uk/nccid/guidance/COVID-19_NCCID_covid_positive_data_template_v1_5.xlsx
 
 # Category maps
-with open("../files/category_maps.json", "r") as f:
+with open("../data/category_maps.json", "r") as f:
     category_maps = json.load(f)
 
 _ETHNICITY_MAPPING = category_maps["ethnicity"]
