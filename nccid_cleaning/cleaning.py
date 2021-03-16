@@ -42,12 +42,14 @@ _US_DATE_COLS = [
     "Date of death",
 ]
 
+
 def _clean_name(name: str) -> str:
     """
     Returns name of new cleaned column. Cleaned columns names are fully
-    lowercase, whitespace is replaced with underscores, and commas are removed. 
+    lowercase, whitespace is replaced with underscores, and commas are removed.
     """
     return name.lower().replace(" ", "_").replace(",", "")
+
 
 def _remap_ethnicity(patients_df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -274,7 +276,14 @@ def _parse_binary_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
 
     for col in [col for col in binary_columns if col in patients_df]:
         patients_df[_clean_name(col)] = patients_df[col].map(
-            {0: False, "0": False, "0.0": False, 1: True, "1": True, "1.0": True}
+            {
+                0: False,
+                "0": False,
+                "0.0": False,
+                1: True,
+                "1": True,
+                "1.0": True,
+            }
         )
 
     # map and merge 'PMH h1pertension column'
@@ -334,7 +343,9 @@ def _parse_cat_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
     }
     for col in [col for col in schema_values.keys() if col in patients_df]:
         new_col = _clean_name(col)
-        patients_df[new_col] = patients_df[col].astype(str).str.extract(r"(\d+)")
+        patients_df[new_col] = (
+            patients_df[col].astype(str).str.extract(r"(\d+)")
+        )
         patients_df[new_col] = patients_df[new_col].loc[
             patients_df[new_col].isin(schema_values[col])
         ]
