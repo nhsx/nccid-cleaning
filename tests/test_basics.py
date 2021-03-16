@@ -6,7 +6,7 @@ import nccid_cleaning as nc
 
 def test_example():
     # Load our test case and reference output
-    df = pd.read_csv("notebooks/data/example.csv")
+    df = pd.read_csv("data/example.csv")
 
     # Some type coertion for the loaded CSV fields
     date_cols = [
@@ -21,7 +21,7 @@ def test_example():
         "covid_code": "object",
     }
     df_target = pd.read_csv(
-        "notebooks/data/example_cleaned.csv",
+        "data/example_cleaned.csv",
         parse_dates=date_cols,
         dtype=dtypes,
     )
