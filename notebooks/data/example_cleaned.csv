@@ -1,0 +1,11 @@
+Pseudonym,SwabStatus,SubmittingCentre,Ethnicity,Age,Sex,SwabDate,Date of Positive Covid Swab,Date of admission,PMH hypertension,PMH h1pertension,PMH Lung disease,PMH diabetes mellitus TYPE II,PMH diabetes mellitus type II,FiO2,Temperature on admission,Systolic BP,Diastolic BP,Ferritin,1st RT-PCR result,CXR severity 3,COVID CODE,ethnicity,sex,temperature_on_admission,ferritin,systolic_bp,diastolic_bp,age,date_of_positive_covid_swab,date_of_admission,swabdate,latest_swab_date,pmh_hypertension,pmh_diabetes_mellitus_type_2,pmh_lung_disease,cxr_severity_2,covid_code,1st_rt-pcr_result,fio2
+Patient1,0.0,Centre A,A,12.0,F,05/05/2020,,05/05/2020,,1,,,0.0,10L,35,,,3.493,0,, ,White,F,35.0,3.493,,,12.0,,2020-05-05,2020-05-05,2020-05-05,True,False,,,,Negative,60.0
+Patient2,,Centre A,White - British,44.0,M,,3/31/20,31/03/2020,1.0,,4,,0.0,100,37.6,126,75,,1,0,3,White,M,37.6,,126.0,75.0,44.0,2020-03-31,2020-03-31,,2020-03-31,True,False,4,,3,Positive,100.0
+Patient3,0.0,Centre B,J,30.5,0,24/04/2020,,[Text] - 2020-03-20,,1es,0,1.0,, ,36,[137/91] - 2020-06-02,[137/91] - 2020-06-02,[67] - 2020-06-06,,1,0,Asian,F,36.0,67.0,137.0,91.0,30.0,,2020-03-20,2020-04-24,2020-04-24,True,True,0,1,0,,
+Patient4,,Centre B,C,88.0,1,,1/24/20,,0.0,0,6,,1.0,0.28, ,, ,[345] - 2020-03-27,1,,1,White,M,,345.0,,,88.0,2020-01-24,,,2020-01-24,False,True,,,1,Positive,28.0
+Patient5,0.0,Centre A,M,,2,02/04/2020,,[Text] - 2020-05-06,3.0,,5 - Lung Ca,2.0,,2,96,,,4532, ,3, ,Black,Unknown,,4532.0,,,,,2020-05-06,2020-04-02,2020-04-02,,,5,3,,,29.0
+Patient6,1.0,Centre A,A,100.0, ,06/05/2020,5/6/2020,06/01/2020,1.0,, ,,2.0,0,0,[131/68] - 2020-05-14,[131/68] - 2020-05-14,,RNA DETECTED (SARS-CoV-2), ,2,White,Unknown,,,131.0,68.0,100.0,2020-05-06,2020-06-01,2020-05-06,2020-05-06,True,,,,2,Positive,0.0
+Patient7,0.0,Centre A,Unknown,65.889,3,05/16/2020,,,2.0,,1,,,0.64,,,,400,,2,,Unknown,Unknown,,400.0,,,65.0,,,2020-05-16,2020-05-16,,,1,2,,,64.0
+Patient8,0.0,Centre A,99,,t,15/03/2020,,43909,1.0, ,2,,,0.8,,72,42, ,,,CVCX2,Unknown,Unknown,,,72.0,42.0,,,,2020-03-15,2020-03-15,True,,2,,2,,80.0
+Patient9,1.0,Centre A,not recorded,0.0,Unknown,30/03/2020,,3/26/20,,1,3,,,,,,,[4452] - 2020-04-07,,o,,Unknown,Unknown,,4452.0,,,0.0,,2020-03-26,2020-03-30,2020-03-30,True,,3,,,,
+Patient10,0.0,Centre B,Caribbean,,,,,,,2,,,,white,,103,80,,,,CVCX3,Black,Unknown,,,103.0,80.0,,,,,,,,,,3,,28.0
