@@ -5,7 +5,7 @@ setuptools.setup(
     use_scm_version=True,
     setup_requires=['setuptools_scm'],
     description="Cleaning pipeline for the the National"
-        + "COVID-19 Chest Imaging Database (NCCID) clinical data.",
+    + "COVID-19 Chest Imaging Database (NCCID) clinical data.",
     author="NHSX",
     url="https://github.com/nhsx/nccid-cleaning",
     packages=setuptools.find_packages(),
@@ -21,5 +21,5 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6'
+    python_requires=">=3.6",
 )

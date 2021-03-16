@@ -14,7 +14,9 @@ with open("../data/category_maps.json", "r") as f:
 
 _ETHNICITY_MAPPING = category_maps["ethnicity"]
 _ETHNICITY_MAPPING = {k.lower(): v for k, v in _ETHNICITY_MAPPING.items()}
-_ETHNICITY_MAPPING.update({v.lower(): v for v in set(_ETHNICITY_MAPPING.values())})
+_ETHNICITY_MAPPING.update(
+    {v.lower(): v for v in set(_ETHNICITY_MAPPING.values())}
+)
 _ETHNICITY_MAPPING.update({np.nan: "Unknown"})
 
 _SEX_MAPPING = category_maps["sex"]
@@ -78,7 +80,8 @@ def _remap_ethnicity(patients_df: pd.DataFrame) -> pd.DataFrame:
             patients_df["Ethnicity"].str.lower().replace(_ETHNICITY_MAPPING)
         )
     except AttributeError:
-        # If the column is all empty, the .str call would break as non-string is inferred
+        # If the column is all empty, the .str call would
+        # break as non-string is inferred
         pass
 
     return patients_df
@@ -91,13 +94,13 @@ def _remap_sex(patients_df: pd.DataFrame) -> pd.DataFrame:
     try:
         patients_df["sex"] = (
             patients_df["Sex"]
-            .str
-            .lower()
+            .str.lower()
             .map(_SEX_MAPPING)
-            .replace({np.nan:"Unknown"})
-            )
+            .replace({np.nan: "Unknown"})
+        )
     except AttributeError:
-        # If the column is all empty, the .str call would break as non-string is inferred
+        # If the column is all empty, the .str call would
+        # break as non-string is inferred
         pass
 
     return patients_df
@@ -169,9 +172,9 @@ def _coerce_numeric_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
 
     # age (round to nearest year)
     if "Age" in patients_df:
-        patients_df["age"] = pd.to_numeric(patients_df["Age"], errors="coerce").apply(
-            np.floor
-        )
+        patients_df["age"] = pd.to_numeric(
+            patients_df["Age"], errors="coerce"
+        ).apply(np.floor)
 
     return patients_df
 
@@ -211,7 +214,7 @@ def _parse_date_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
 
         _x = pd.NaT
         if isinstance(x, str):
-            # Look for expected date patterns MM/DD/YY or MM/DD/YYYY to datetime
+            # Look for expected date patterns MM/DD/YY or MM/DD/YYYY
             match_standard = re.search(
                 r"\d{1,2}/\d{1,2}/\d{2,4}",
                 x,
@@ -241,7 +244,7 @@ def _parse_date_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
         patients_df["swabdate"] = pd.to_datetime(
             patients_df["SwabDate"], dayfirst=True, errors="coerce"
         )
-    
+
         # Calculate the latest swab date
         if "swabdate" and "date_of_positive_covid_swab" in patients_df:
             patients_df["latest_swab_date"] = pd.concat(
@@ -251,7 +254,7 @@ def _parse_date_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
                 ],
                 axis=1,
             ).max(axis=1)
-    
+
         return patients_df
 
 
@@ -276,9 +279,9 @@ def _parse_binary_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
 
     # map and merge 'PMH h1pertension column'
     if "PMH h1pertension" in patients_df:
-        patients_df["pmh_hypertension"] = patients_df["pmh_hypertension"].fillna(
-            patients_df["PMH h1pertension"].map({"1": True, "1es": True})
-        )
+        patients_df["pmh_hypertension"] = patients_df[
+            "pmh_hypertension"
+        ].fillna(patients_df["PMH h1pertension"].map({"1": True, "1es": True}))
 
     # merge old column and map to binary
     # not merging 'PMH diabetes mellitus TYPE I'
@@ -288,14 +291,23 @@ def _parse_binary_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
             "PMH diabetes mellitus type II"
         ].copy()
         if "PMH diabetes mellitus TYPE II" in patients_df:
-            # Fill in from capitalised original field, see "TYPE" instead of "type"
+            # Fill in from capitalised original field, "TYPE" instead of "type"
             patients_df["pmh_diabetes_mellitus_type_2"] = patients_df[
                 "pmh_diabetes_mellitus_type_2"
             ].fillna(patients_df["PMH diabetes mellitus TYPE II"])
         # finish up remapping
         patients_df["pmh_diabetes_mellitus_type_2"] = patients_df[
             "pmh_diabetes_mellitus_type_2"
-        ].map({0: False, "0": False, "0.0": False, 1: True, "1": True, "1.0": True})
+        ].map(
+            {
+                0: False,
+                "0": False,
+                "0.0": False,
+                1: True,
+                "1": True,
+                "1.0": True,
+            }
+        )
 
     return patients_df
 
@@ -304,9 +316,9 @@ def _parse_cat_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
 
     if "Pack year history" in patients_df:
         # Remove known errors such as ' '
-        patients_df["pack_year_history"] = patients_df["Pack year history"].str.extract(
-            r"(\d+)"
-        )
+        patients_df["pack_year_history"] = patients_df[
+            "Pack year history"
+        ].str.extract(r"(\d+)")
 
     # strip digits from strings and exclude values outside of schema
     # "Unknown" categories mapped to nan if they exist
@@ -333,7 +345,11 @@ def _parse_cat_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
 def _remap_test_result_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
 
     # maps entries of 'RNA DETECTED (SARS-CoV-2)' to positive
-    result_columns = ("1st RT-PCR result", "2nd RT-PCR result", "Final COVID Status")
+    result_columns = (
+        "1st RT-PCR result",
+        "2nd RT-PCR result",
+        "Final COVID Status",
+    )
 
     for col in [col for col in result_columns if col in patients_df]:
         patients_df[_clean_name(col)] = patients_df[col].map(
@@ -392,7 +408,9 @@ def _rescale_fio2(patients_df: pd.DataFrame) -> pd.DataFrame:
             return None
 
     if "FiO2" in patients_df:
-        patients_df["fio2"] = patients_df["FiO2"].map(lambda x: _fiO2_mapping(str(x)))
+        patients_df["fio2"] = patients_df["FiO2"].map(
+            lambda x: _fiO2_mapping(str(x))
+        )
     return patients_df
 
 

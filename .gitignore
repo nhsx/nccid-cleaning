@@ -31,3 +31,5 @@
 # coverage report
 .coverage
 
+# Testing and automation temporary files
+.tox
