@@ -1,15 +1,20 @@
+import json
+import os
 import re
+from pathlib import Path
 from typing import Callable, Collection, Optional
 
 import numpy as np
 import pandas as pd
-import json
 
 # Mapping can be found in the submission spreadsheet
 # https://medphys.royalsurrey.nhs.uk/nccid/guidance/COVID-19_NCCID_covid_positive_data_template_v1_5.xlsx
 
 # Category maps
-with open("../data/category_maps.json", "r") as f:
+_maps_json_file = (
+    Path(os.path.realpath(__file__)).parents[0] / "data" / "category_maps.json"
+)
+with open(_maps_json_file, "r") as f:
     category_maps = json.load(f)
 
 _ETHNICITY_MAPPING = category_maps["ethnicity"]

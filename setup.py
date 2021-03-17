@@ -3,12 +3,14 @@ import setuptools
 setuptools.setup(
     name="nccid_cleaning",
     use_scm_version=True,
-    setup_requires=['setuptools_scm'],
+    setup_requires=["setuptools_scm"],
     description="Cleaning pipeline for the the National"
     + "COVID-19 Chest Imaging Database (NCCID) clinical data.",
     author="NHSX",
     url="https://github.com/nhsx/nccid-cleaning",
     packages=setuptools.find_packages(),
+    package_data={"": ["data/category_maps.json"]},
+    include_package_data=True,
     install_requires=["pandas"],
     extras_require={
         "notebooks": [
