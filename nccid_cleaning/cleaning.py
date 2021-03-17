@@ -12,7 +12,7 @@ import pandas as pd
 
 # Category maps
 _maps_json_file = (
-    Path(os.path.realpath(__file__)).parents[0] / "data" / "category_maps.json"
+    Path(os.path.realpath(__file__)).parent / "data" / "category_maps.json"
 )
 with open(_maps_json_file, "r") as f:
     category_maps = json.load(f)
