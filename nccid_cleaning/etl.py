@@ -21,7 +21,9 @@ def select_image_files(
     Note: `select_all=True` will override `select_first` and `select_last`.
     """
     files_to_process = []
-    for dirpath, subdirlist, file_list in tqdm(os.walk(base_path), desc="Finding files"):
+    for dirpath, subdirlist, file_list in tqdm(
+        os.walk(base_path), desc="Finding files"
+    ):
         selected_files = map(
             lambda i: (select_all)
             or (select_first and (i == 0))
@@ -49,7 +51,8 @@ def ingest_dicom_json(file: Path) -> Dataset:
         data = json.load(
             f,
             object_hook=lambda d: {
-                k: b"" if k == "InlineBinary" and v is None else v for k, v in d.items()
+                k: b"" if k == "InlineBinary" and v is None else v
+                for k, v in d.items()
             },
         )
 
@@ -71,7 +74,9 @@ def ingest_dicom_jsons(files: List[Path]) -> Dict[Path, Dataset]:
 
 
 def pydicom_to_df(datasets: Dict[Path, Dataset]) -> pd.DataFrame:
-    """"Takes a dict of dicom dataset metadata, and turns it into a dataframe"""
+    """ "
+    Takes a dict of dicom dataset metadata, and turns it into a dataframe.
+    """
 
     attributes = []
     for file, ds in datasets.items():
@@ -89,8 +94,8 @@ def pydicom_to_df(datasets: Dict[Path, Dataset]) -> pd.DataFrame:
 
 def patient_jsons_to_df(files: List[Tuple]) -> pd.DataFrame:
     """
-    Reads in a list of tuples containing json files and concatenates to a dataframe,
-    taking the latest dated json for each.
+    Reads in a list of tuples containing json files and concatenates
+    to a dataframe, taking the latest dated json for each.
     """
 
     latest_records: Dict[Path, Dict] = {}
@@ -99,11 +104,15 @@ def patient_jsons_to_df(files: List[Tuple]) -> pd.DataFrame:
         if filelist:
             # This relies on the filename format being consistent
             file_dates = [
-                datetime.strptime(file.split("_")[1].split(".")[0], "%Y-%m-%d").date()
+                datetime.strptime(
+                    file.split("_")[1].split(".")[0], "%Y-%m-%d"
+                ).date()
                 for file in filelist
             ]
 
-            covid_positive = any([file.lower().startswith("data") for file in filelist])
+            covid_positive = any(
+                [file.lower().startswith("data") for file in filelist]
+            )
 
             file_filter = "data" if covid_positive else "status"
             filtered_file_list = [
@@ -118,7 +127,10 @@ def patient_jsons_to_df(files: List[Tuple]) -> pd.DataFrame:
                 latest_record = json.load(
                     f,
                     object_hook=lambda d: dict(
-                        d, **d.get("OtherDataSources", {}).get("SegmentationData", {})
+                        d,
+                        **d.get("OtherDataSources", {}).get(
+                            "SegmentationData", {}
+                        )
                     ),
                 )
 
