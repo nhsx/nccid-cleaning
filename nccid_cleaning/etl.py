@@ -21,7 +21,7 @@ def select_image_files(
     Note: `select_all=True` will override `select_first` and `select_last`.
     """
     files_to_process = []
-    for dirpath, subdirlist, file_list in tqdm(os.walk(base_path)):
+    for dirpath, subdirlist, file_list in tqdm(os.walk(base_path), desc="Finding files"):
         selected_files = map(
             lambda i: (select_all)
             or (select_first and (i == 0))
