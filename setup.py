@@ -9,6 +9,8 @@ setuptools.setup(
     author="NHSX",
     url="https://github.com/nhsx/nccid-cleaning",
     packages=setuptools.find_packages(),
+    package_data={"": ["data/category_maps.json"]},
+    include_package_data=True,
     install_requires=["pandas"],
     extras_require={
         "notebooks": [

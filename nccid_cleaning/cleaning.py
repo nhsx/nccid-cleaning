@@ -1,4 +1,7 @@
+import json
+import os
 import re
+from pathlib import Path
 from typing import Callable, Collection, Optional
 
 import numpy as np
@@ -7,50 +10,27 @@ import pandas as pd
 # Mapping can be found in the submission spreadsheet
 # https://medphys.royalsurrey.nhs.uk/nccid/guidance/COVID-19_NCCID_covid_positive_data_template_v1_5.xlsx
 
-_ETHNICITY_MAPPING = {
-    "A": "White",
-    "B": "White",
-    "C": "White",
-    "D": "Multiple",
-    "E": "Multiple",
-    "F": "Multiple",
-    "G": "Multiple",
-    "H": "Asian",
-    "J": "Asian",
-    "K": "Asian",
-    "L": "Asian",
-    "M": "Black",
-    "N": "Black",
-    "P": "Black",
-    "R": "Asian",
-    "S": "Other",
-    "Indian": "Asian",
-    "Pakistani": "Asian",
-    "Chinese": "Asian",
-    "Caribbean": "Black",
-    "African": "Black",
-    "Any other ethnic group": "Other",
-    "Any other Black background": "Black",
-    "Any other Asian background": "Asian",
-}
+# Category maps
+_maps_json_file = (
+    Path(os.path.realpath(__file__)).parent / "data" / "category_maps.json"
+)
+with open(_maps_json_file, "r") as f:
+    category_maps = json.load(f)
+
+_ETHNICITY_MAPPING = category_maps["ethnicity"]
 _ETHNICITY_MAPPING = {k.lower(): v for k, v in _ETHNICITY_MAPPING.items()}
 _ETHNICITY_MAPPING.update(
     {v.lower(): v for v in set(_ETHNICITY_MAPPING.values())}
 )
 _ETHNICITY_MAPPING.update({np.nan: "Unknown"})
 
-_SEX_MAPPING = {"1": "M", "0": "F", "2": "Unknown", "3": "Unknown"}
+_SEX_MAPPING = category_maps["sex"]
 _SEX_MAPPING = {k.lower(): v for k, v in _SEX_MAPPING.items()}
 _SEX_MAPPING.update({v.lower(): v for v in set(_SEX_MAPPING.values())})
 _SEX_MAPPING.update({np.nan: "Unknown"})
 
-_TEST_RESULT_MAPPING = {
-    0: "Negative",
-    "0": "Negative",
-    1: "Positive",
-    "1": "Positive",
-    "RNA DETECTED (SARS-CoV-2)": "Positive",
-}
+_TEST_RESULT_MAPPING = category_maps["test_results"]
+_TEST_RESULT_MAPPING.update({0: "Negative", 1: "Positive"})
 
 _US_DATE_COLS = [
     "Date of Positive Covid Swab",
@@ -66,6 +46,14 @@ _US_DATE_COLS = [
     "Date last known alive",
     "Date of death",
 ]
+
+
+def _clean_name(name: str) -> str:
+    """
+    Returns name of new cleaned column. Cleaned columns names are fully
+    lowercase, whitespace is replaced with underscores, and commas are removed.
+    """
+    return name.lower().replace(" ", "_").replace(",", "")
 
 
 def _remap_ethnicity(patients_df: pd.DataFrame) -> pd.DataFrame:
@@ -176,8 +164,7 @@ def _coerce_numeric_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
         "Troponin T",  # not widely used by sites
     )
     for col in [col for col in clinical_columns if col in patients_df]:
-        new_col = col.lower().replace(" ", "_").replace(",", "")
-        patients_df[new_col] = patients_df[col].map(
+        patients_df[_clean_name(col)] = patients_df[col].map(
             lambda x: _extract_clinical_values(str(x), kind="single")
         )
     # blood pressure columns
@@ -255,7 +242,7 @@ def _parse_date_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
     # Cleaning and preprocessing for columns expected in US style dates -
     # https://nhsx.github.io/covid-chest-imaging-database/faq.html
     for col in [col for col in _US_DATE_COLS if col in patients_df]:
-        patients_df[col.lower().replace(" ", "_")] = patients_df[col].map(
+        patients_df[_clean_name(col)] = patients_df[col].map(
             lambda x: _clean_us_dates(x)
         )
 
@@ -293,7 +280,7 @@ def _parse_binary_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
     )
 
     for col in [col for col in binary_columns if col in patients_df]:
-        patients_df[col.lower().replace(" ", "_")] = patients_df[col].map(
+        patients_df[_clean_name(col)] = patients_df[col].map(
             {
                 0: False,
                 "0": False,
@@ -360,7 +347,7 @@ def _parse_cat_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
         "COVID CODE 2": ["0", "1", "2", "3"],
     }
     for col in [col for col in schema_values.keys() if col in patients_df]:
-        new_col = col.lower().replace(" ", "_").replace(",", "")
+        new_col = _clean_name(col)
         patients_df[new_col] = (
             patients_df[col].astype(str).str.extract(r"(\d+)")
         )
@@ -381,7 +368,7 @@ def _remap_test_result_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
     )
 
     for col in [col for col in result_columns if col in patients_df]:
-        patients_df[col.lower().replace(" ", "_")] = patients_df[col].map(
+        patients_df[_clean_name(col)] = patients_df[col].map(
             _TEST_RESULT_MAPPING
         )
     return patients_df

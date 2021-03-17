@@ -1,0 +1,39 @@
+{
+    "ethnicity": {
+        "A": "White",
+        "B": "White",
+        "C": "White",
+        "D": "Multiple",
+        "E": "Multiple",
+        "F": "Multiple",
+        "G": "Multiple",
+        "H": "Asian",
+        "J": "Asian",
+        "K": "Asian",
+        "L": "Asian",
+        "M": "Black",
+        "N": "Black",
+        "P": "Black",
+        "R": "Asian",
+        "S": "Other",
+        "Indian": "Asian",
+        "Pakistani": "Asian",
+        "Chinese": "Asian",
+        "Caribbean": "Black",
+        "African": "Black",
+        "Any other ethnic group": "Other",
+        "Any other Black background": "Black",
+        "Any other Asian background": "Asian"
+    },
+    "sex": {
+        "1": "M",
+        "0": "F",
+        "2": "Unknown",
+        "3": "Unknown"
+    },
+    "test_results": {
+        "0": "Negative",
+        "1": "Positive",
+        "RNA DETECTED (SARS-CoV-2)": "Positive"
+    }
+}
