@@ -142,3 +142,101 @@ def patient_jsons_to_df(files: List[Tuple]) -> pd.DataFrame:
             }
 
     return pd.DataFrame(list(latest_records.values()))
+
+
+def dicom_age_in_years(age_string: str):
+    """Helper function to extract DICOM age into float
+    Parameters
+    ----------
+    age_string :
+        The age string as defined in the DICOM standard,see
+        http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.2.html
+    Returns
+    -------
+    float or None
+        The age or None if any conversiomn went wrong.
+    """
+    try:
+        units = age_string[-1]
+        value = age_string[0:-1]
+    except IndexError:
+        return
+    try:
+        age = float(value)
+    except ValueError:
+        return
+
+    if units == "Y":
+        # default
+        pass
+    elif units == "M":
+        age /= 12
+    elif units == "W":
+        age /= 52
+    elif units == "D":
+        age /= 365
+    else:
+        # unknown
+        return
+    return age
+
+
+def patient_data_dicom_update(
+    patients: pd.DataFrame, images: List[pd.DataFrame]
+) -> pd.DataFrame:
+    """Fills in missing values for Sex and Age from imaging dicom headers.
+    Parameters
+    ----------
+    patients :
+        The patient clinical DataFrame that needs filling in.
+    images :
+        List of image metadata Dataframes, e.g., [xrays, cts, mris].
+    Returns
+    -------
+    pd.DataFrame
+        Patient data with updated sex and age information filled in
+        using the image metadata.
+    """
+
+    demo = pd.concat(
+        [
+            modality[["Pseudonym", "PatientSex", "PatientAge"]]
+            for modality in images
+        ]
+    )
+    demo["ParsedPatientAge"] = demo["PatientAge"].map(dicom_age_in_years)
+    demo_dedup = (
+        demo.sort_values("ParsedPatientAge", ascending=True)
+        .drop_duplicates(subset=["Pseudonym"], keep="last")
+        .sort_index()
+    )
+
+    def _fill_sex(x, df_dicom):
+        sex = x["sex"]
+        if sex == "Unknown":
+            try:
+                sex = df_dicom.loc[df_dicom["Pseudonym"] == x["Pseudonym"]][
+                    "PatientSex"
+                ].values[0]
+            except IndexError:
+                pass
+        return sex
+
+    def _fill_age(x, df_dicom):
+        age = x["age"]
+        if pd.isnull(age):
+            try:
+                age = df_dicom.loc[df_dicom["Pseudonym"] == x["Pseudonym"]][
+                    "ParsedPatientAge"
+                ].values[0]
+            except IndexError:
+                pass
+        return age
+
+    patients["age_update"] = patients.apply(
+        lambda x: _fill_age(x, demo_dedup), axis=1
+    )
+    patients["sex_update"] = patients.apply(
+        lambda x: _fill_sex(x, demo_dedup), axis=1
+    )
+    return patients

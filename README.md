@@ -12,7 +12,7 @@ cd nccid-cleaning
 pip install .
 ```
 
-### Running 
+### Usage 
 To run the cleaning pipeline execute the following code:
 ```python
 from nccid_cleaning import clean_data_df, patient_df_pipeline
@@ -40,3 +40,9 @@ Alternatively, pass the subset of functions that meet your specific needs. For e
 Rather than replacing the original data the pipeline creates new columns with lowercase and underscored names. Thus, the clean version of `Date of admission` becomes `date_of_admission`, and `Age` becomes `age`
 
 An example, including further details of the cleaning steps is provided in `notebooks/example_cleaning_pipeline.ipynb`.
+
+#### Ingestion tools
+
+Data ingestion tools that generate tabular patient and imaging metadata files (.csv)
+are available in the submodule `etl.py`. The detailed workflow for generating these files 
+is exmplained in `notebooks/ingestion.ipynb`. 
