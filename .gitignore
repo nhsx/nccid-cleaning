@@ -21,6 +21,11 @@
 
 # exclude data from source control by default
 /data/
+cts.csv
+mris.csv
+patients.csv
+xrays.csv
+
 
 # Mac OS-specific storage files
 .DS_Store
