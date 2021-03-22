@@ -9,7 +9,12 @@ setuptools.setup(
     author="NHSX",
     url="https://github.com/nhsx/nccid-cleaning",
     packages=setuptools.find_packages(),
-    install_requires=["pandas", "pydicom", "tqdm"],
+    install_requires=[
+        "pandas",
+        "pydicom",
+        "tqdm",
+        "python-dotenv",
+    ],
     extras_require={
         "notebooks": [
             "jupyter",
