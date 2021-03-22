@@ -13,7 +13,6 @@ setuptools.setup(
         "pandas",
         "pydicom",
         "tqdm",
-        "python-dotenv",
     ],
     extras_require={
         "notebooks": [

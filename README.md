@@ -42,12 +42,10 @@ Rather than replacing the original data the pipeline creates new columns with lo
 An example, including further details of the cleaning steps is provided in `notebooks/example_cleaning_pipeline.ipynb`.
 
 
-#### Ingestion tools
+### Ingestion tools
 
 Data ingestion tools that generate tabular patient clinical data and imaging metadata files (.csv) are available in the submodule `etl.py`. 
 
-The detailed workflow for generating these files is explained in `notebooks/ingestion.ipynb`. 
+The detailed workflow for generating these files is explained in `notebooks/ingestion.ipynb`. Before running the ingestion notebook it is recommended that you edit the `training_data` path within the `config.ini` file to point to your local NCCID data location.
 
-It my be helpful to setup a .env to store environment variables like the location of your NCCID data. Copy the `env.template` to `.env` in the same location and fill in the value for `training_data` with your local path to the data. 
-
-To use the ingestion tools, the directory tree for your `training_data` should have the same structure as the original NCCID S3 bucket. If you have split your data, e.g., into train/test sets, the ingestion pipeline can be run separately for each sample as long as they all have the same directory structure as the NCCID S3 bucket.
+To use the ingestion tools, the directory tree for your `training_data` should have the same structure as the original NCCID S3 bucket. If you have split your data, e.g., into train/test sets, the ingestion pipeline can be run separately for each sample as long as they have the same directory structure as the NCCID S3 bucket.
