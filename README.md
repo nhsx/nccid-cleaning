@@ -12,7 +12,7 @@ cd nccid-cleaning
 pip install .
 ```
 
-### Running 
+### Usage 
 To run the cleaning pipeline execute the following code:
 ```python
 from nccid_cleaning import clean_data_df, patient_df_pipeline
@@ -40,3 +40,12 @@ Alternatively, pass the subset of functions that meet your specific needs. For e
 Rather than replacing the original data the pipeline creates new columns with lowercase and underscored names. Thus, the clean version of `Date of admission` becomes `date_of_admission`, and `Age` becomes `age`
 
 An example, including further details of the cleaning steps is provided in `notebooks/example_cleaning_pipeline.ipynb`.
+
+
+### Ingestion tools
+
+Data ingestion tools that generate tabular patient clinical data and imaging metadata files (.csv) are available in the submodule `etl.py`. 
+
+The detailed workflow for generating these files is explained in `notebooks/ingestion.ipynb`. Before running the ingestion notebook you may wish to setup an environment variable (e.g., in your .bashrc) for `NCCID_DATA_DIR` which points to the location of the NCCID data in your local file system.
+
+To use the ingestion tools, the directory tree for your `NCCID_DATA_DIR` should have the same structure as the original NCCID S3 bucket. If you have split your data, e.g., into train/test sets, the ingestion pipeline can be run separately for each sample as long as they have the same directory structure as the NCCID S3 bucket.

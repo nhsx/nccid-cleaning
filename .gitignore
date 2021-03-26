@@ -19,8 +19,9 @@
 # nox directory
 .nox/
 
-# exclude data from source control by default
-/data/
+# exclude processed data from source control by default (except the given examples)
+notebooks/data/*
+!notebooks/data/example*.csv
 
 # Mac OS-specific storage files
 .DS_Store
