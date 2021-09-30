@@ -51,7 +51,7 @@ def ingest_dicom_json(file: Path) -> Dataset:
             f,
             # Read {"InlineBinary": null} as {"InlineBinary": b""} to parse
             object_hook=lambda d: {
-                k: b"" if k == "InlineBinary" and v is None else v
+                k: "" if k == "InlineBinary" and v is None else v
                 for k, v in d.items()
             },
         )
