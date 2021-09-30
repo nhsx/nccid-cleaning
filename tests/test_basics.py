@@ -1,4 +1,5 @@
 # content of test_sysexit.py
+import numpy as np
 import pandas as pd
 
 import nccid_cleaning as nc
@@ -31,3 +32,18 @@ def test_example():
 
     # Test the equivalence
     pd.testing.assert_frame_equal(df_cleaned, df_target)
+
+
+def test_coerce_numeric_columns_when_no_values():
+    val = ""
+    cols = (
+        "Fibrinogen  if d-dimer not performed",
+        "Urea on admission",
+        "O2 saturation",
+        "Temperature on admission",
+    )
+
+    df = pd.DataFrame([[val for _ in range(len(cols))]], columns=cols)
+    df = nc.cleaning._coerce_numeric_columns(df)
+    output_cols = [col for col in df.columns if col not in cols]
+    assert (df[output_cols].dtypes == 'float64').all()

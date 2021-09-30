@@ -152,6 +152,7 @@ def _coerce_numeric_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
                 return float(match_error.group("systolic"))
             elif match_error and kind == "diastolic":
                 return float(match_error.group("diastolic"))
+        return np.nan
 
     # standard clinical columns to be cleaned
     clinical_columns = (
