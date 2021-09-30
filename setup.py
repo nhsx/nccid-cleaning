@@ -11,7 +11,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     install_requires=[
         "pandas",
-        "pydicom",
+        "pydicom>=2.2.0",
         "tqdm",
     ],
     extras_require={
