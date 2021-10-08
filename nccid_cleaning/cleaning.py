@@ -276,7 +276,7 @@ def _parse_date_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
                 axis=1,
             ).max(axis=1)
 
-        return patients_df
+    return patients_df
 
 
 def _parse_binary_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
