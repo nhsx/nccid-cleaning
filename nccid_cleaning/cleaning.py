@@ -261,13 +261,28 @@ def _parse_date_columns(patients_df: pd.DataFrame) -> pd.DataFrame:
         )
 
     # Parsing of columns expected in UK style dates
+    if "SwabDates" in patients_df: # Negative patients only
+        def _swab_dates(g):
+            if isinstance(g, list):
+                return [
+                    {
+                        "SwabDate": pd.to_datetime(v["SwabDate"], dayfirst=True, errors="coerce"),
+                        "SwabStatus": v["SwabStatus"]
+                    }
+                    for v in g
+                ]
+            else:
+                return []
+
+        patients_df["swabdates"] = patients_df["SwabDates"].apply(_swab_dates)
+
     if "SwabDate" in patients_df:
         patients_df["swabdate"] = pd.to_datetime(
             patients_df["SwabDate"], dayfirst=True, errors="coerce"
         )
 
         # Calculate the latest swab date
-        if "swabdate" and "date_of_positive_covid_swab" in patients_df:
+        if "date_of_positive_covid_swab" in patients_df:
             patients_df["latest_swab_date"] = pd.concat(
                 [
                     patients_df["date_of_positive_covid_swab"],
