@@ -6,6 +6,7 @@ from typing import Dict, List, Tuple
 
 import pandas as pd
 from pydicom.dataset import Dataset
+import pydicom
 from tqdm.auto import tqdm
 
 
@@ -41,24 +42,44 @@ def select_image_files(
     return files_to_process
 
 
-def ingest_dicom_json(file: Path) -> Dataset:
+def ingest_dicom_json(
+    file: Path,
+    exclude_filter_thickness: bool = True,
+    convert_datetimes: bool = True
+    ) -> Dataset:
     """
     Reads in a single of json file with pydicom
+    When `exclude_filter_thickness` is `True`, filter thickness min and max
+    tags (`00187052` and `00187054`, respectively) are excluded.
+    `convert_datatimes`: sets `pydicom.config.datetime_conversion` (https://pydicom.github.io/pydicom/dev/reference/generated/pydicom.config.datetime_conversion.html)
     """
+    dt_conversion = pydicom.config.datetime_conversion
+    if convert_datetimes:
+        pydicom.config.datetime_conversion = True
+    def hook(d):
+        result = {}
+        for k, v in d.items():
+            # Remove Filter Thickness min and max as problematic when multiple values
+            if (k in ('00187052', '00187054')) and exclude_filter_thickness:
+                continue
+            if k == "InlineBinary" and v is None:
+                result[k] = ""
+            # Replace top-level nulls with empty DICOM sequences
+            elif v is None:
+                result[k] = {"vr": "SQ"}
+            else:
+                result[k] = v
+        return result
 
     with open(file, "rb") as f:
         data = json.load(
             f,
-            # Read {"InlineBinary": null} as {"InlineBinary": b""} to parse
-            object_hook=lambda d: {
-                k: "" if k == "InlineBinary" and v is None else v
-                for k, v in d.items()
-            },
+            object_hook=hook,
         )
-
-    # Replace top-level nulls with empty DICOM sequences
-    data = {k: {"vr": "SQ"} if v is None else v for k, v in data.items()}
-    return Dataset.from_json(data)
+    result =  pydicom.Dataset.from_json(data)
+    # Restore config param
+    pydicom.config.datetime_conversion = dt_conversion
+    return result
 
 
 def ingest_dicom_jsons(files: List[Path]) -> Dict[Path, Dataset]:
